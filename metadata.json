@@ -1,0 +1,6 @@
+{
+  "name": "AI Story Time",
+  "description": "Create and listen to illustrated stories powered by Gemini AI with custom image generation, TTS narration, and interactive continuations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
