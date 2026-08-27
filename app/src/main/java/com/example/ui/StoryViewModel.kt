@@ -7,6 +7,7 @@ import com.example.data.Chapter
 import com.example.data.ChatMessage
 import com.example.data.GeminiService
 import com.example.data.ImageSize
+import com.example.data.ImageStylePreset
 import com.example.data.ReadingFontOption
 import com.example.data.ReadingTheme
 import com.example.data.Story
@@ -67,7 +68,16 @@ data class UiState(
   val selectedAiModel: String = "gemini-3.5-flash",
   val isCharacterGalleryVisible: Boolean = false,
   val isExtractingCharacters: Boolean = false,
-  val selectedCharacterDetail: StoryCharacter? = null
+  val selectedCharacterDetail: StoryCharacter? = null,
+  val showCustomizeImageDialog: Boolean = false,
+  val customizingChapterIndex: Int = 0,
+  val customImagePromptInput: String = "",
+  val selectedImageStyle: ImageStylePreset = ImageStylePreset.PENCIL_SKETCH,
+  val selectedCustomImageSize: ImageSize = ImageSize.SIZE_1K,
+  val isAnalyzingChapterForPrompt: Boolean = false,
+  val isCustomImageGenerating: Boolean = false,
+  val customImagePreviewBase64: String? = null,
+  val customImageError: String? = null
 )
 
 class StoryViewModel(application: Application) : AndroidViewModel(application) {
@@ -371,7 +381,7 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
   private fun generateChapterImage(story: Story, chapterIndex: Int, imagePrompt: String, size: ImageSize) {
     viewModelScope.launch {
       _uiState.value = _uiState.value.copy(isGeneratingImage = true)
-      val imgResult = geminiService.generateStoryImage(imagePrompt, size)
+      val imgResult = geminiService.generateStoryImage(imagePrompt, size, ImageStylePreset.PENCIL_SKETCH)
 
       if (imgResult.base64 != null) {
         val currentChapters = story.chapters.toMutableList()
@@ -388,6 +398,138 @@ class StoryViewModel(application: Application) : AndroidViewModel(application) {
         }
       } else {
         _uiState.value = _uiState.value.copy(isGeneratingImage = false)
+      }
+    }
+  }
+
+  fun openCustomizeImageDialog(chapterIndex: Int) {
+    val story = _uiState.value.currentStory ?: return
+    val chapter = story.chapters.getOrNull(chapterIndex) ?: return
+    _uiState.value = _uiState.value.copy(
+      showCustomizeImageDialog = true,
+      customizingChapterIndex = chapterIndex,
+      customImagePromptInput = chapter.imagePrompt.ifBlank { "Scene from ${chapter.title} in ${story.title}" },
+      customImagePreviewBase64 = chapter.imageBase64,
+      selectedCustomImageSize = story.imageSize,
+      customImageError = null,
+      isCustomImageGenerating = false,
+      isAnalyzingChapterForPrompt = false
+    )
+  }
+
+  fun closeCustomizeImageDialog() {
+    _uiState.value = _uiState.value.copy(
+      showCustomizeImageDialog = false,
+      isCustomImageGenerating = false,
+      isAnalyzingChapterForPrompt = false,
+      customImageError = null
+    )
+  }
+
+  fun setCustomImagePrompt(prompt: String) {
+    _uiState.value = _uiState.value.copy(customImagePromptInput = prompt)
+  }
+
+  fun setSelectedImageStyle(style: ImageStylePreset) {
+    _uiState.value = _uiState.value.copy(selectedImageStyle = style)
+  }
+
+  fun setSelectedCustomImageSize(size: ImageSize) {
+    _uiState.value = _uiState.value.copy(selectedCustomImageSize = size)
+  }
+
+  fun autoGeneratePromptFromChapterStory(chapterIndex: Int) {
+    val story = _uiState.value.currentStory ?: return
+    val chapter = story.chapters.getOrNull(chapterIndex) ?: return
+    val style = _uiState.value.selectedImageStyle
+    val model = _uiState.value.selectedAiModel
+
+    viewModelScope.launch {
+      _uiState.value = _uiState.value.copy(isAnalyzingChapterForPrompt = true, customImageError = null)
+      val extractedPrompt = geminiService.extractImagePromptFromStory(
+        storyTitle = story.title,
+        chapterTitle = chapter.title,
+        chapterContent = chapter.content,
+        stylePreset = style,
+        modelName = model
+      )
+      _uiState.value = _uiState.value.copy(
+        customImagePromptInput = extractedPrompt,
+        isAnalyzingChapterForPrompt = false
+      )
+    }
+  }
+
+  fun generateCustomChapterImage(
+    chapterIndex: Int,
+    customPrompt: String? = null,
+    style: ImageStylePreset? = null,
+    size: ImageSize? = null
+  ) {
+    val story = _uiState.value.currentStory ?: return
+    val promptToUse = customPrompt ?: _uiState.value.customImagePromptInput.ifBlank {
+      val ch = story.chapters.getOrNull(chapterIndex)
+      "Illustration of ${ch?.title ?: "Chapter $chapterIndex"}"
+    }
+    val styleToUse = style ?: _uiState.value.selectedImageStyle
+    val sizeToUse = size ?: _uiState.value.selectedCustomImageSize
+
+    viewModelScope.launch {
+      _uiState.value = _uiState.value.copy(
+        isCustomImageGenerating = true,
+        customImageError = null
+      )
+
+      val result = geminiService.generateStoryImage(
+        imagePrompt = promptToUse,
+        imageSize = sizeToUse,
+        stylePreset = styleToUse
+      )
+
+      if (result.base64 != null) {
+        val currentChapters = story.chapters.toMutableList()
+        if (chapterIndex in currentChapters.indices) {
+          val updatedChapter = currentChapters[chapterIndex].copy(
+            imageBase64 = result.base64,
+            imagePrompt = promptToUse
+          )
+          currentChapters[chapterIndex] = updatedChapter
+          val updatedStory = story.copy(
+            chapters = currentChapters,
+            updatedAt = System.currentTimeMillis()
+          )
+
+          _uiState.value = _uiState.value.copy(
+            currentStory = updatedStory,
+            customImagePreviewBase64 = result.base64,
+            isCustomImageGenerating = false
+          )
+          repository.saveStory(updatedStory)
+        } else {
+          _uiState.value = _uiState.value.copy(isCustomImageGenerating = false)
+        }
+      } else {
+        _uiState.value = _uiState.value.copy(
+          isCustomImageGenerating = false,
+          customImageError = result.error ?: "Failed to generate custom chapter image"
+        )
+      }
+    }
+  }
+
+  fun removeChapterImage(chapterIndex: Int) {
+    val story = _uiState.value.currentStory ?: return
+    val currentChapters = story.chapters.toMutableList()
+    if (chapterIndex in currentChapters.indices) {
+      val updatedChapter = currentChapters[chapterIndex].copy(imageBase64 = null)
+      currentChapters[chapterIndex] = updatedChapter
+      val updatedStory = story.copy(chapters = currentChapters, updatedAt = System.currentTimeMillis())
+      _uiState.value = _uiState.value.copy(
+        currentStory = updatedStory,
+        customImagePreviewBase64 = null
+      )
+      viewModelScope.launch {
+        repository.saveStory(updatedStory)
       }
     }
   }

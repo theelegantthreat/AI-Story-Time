@@ -21,6 +21,56 @@ enum class ImageSize(val label: String, val resolution: String, val description:
   SIZE_4K("4K", "4096x4096", "Maximum Detail (4096x4096)")
 }
 
+enum class ImageStylePreset(
+  val label: String,
+  val icon: String,
+  val stylePromptPrefix: String,
+  val description: String
+) {
+  PENCIL_SKETCH(
+    label = "Pencil Sketch",
+    icon = "✏️",
+    stylePromptPrefix = "Artistic hand-drawn vintage pencil drawing, detailed graphite pencil sketch, delicate shading, cross-hatching, fine line art storybook illustration, textured paper background",
+    description = "Classic hand-drawn graphite & fine line sketch"
+  ),
+  WATERCOLOR(
+    label = "Watercolor",
+    icon = "🎨",
+    stylePromptPrefix = "Soft delicate watercolor storybook illustration, translucent washes, flowing pastel pigments, textured watercolor paper, whimsical fairytale aesthetic",
+    description = "Dreamy watercolor pigments on textured paper"
+  ),
+  DIGITAL_VIBRANT(
+    label = "Vibrant Digital",
+    icon = "✨",
+    stylePromptPrefix = "Children's storybook vibrant 3D illustration, Disney Pixar animated concept art style, rich cinematic volumetric lighting, crisp 8k details, colorful and magical",
+    description = "Luminous 3D cinematic animation style"
+  ),
+  VINTAGE_FAIRYTALE(
+    label = "Vintage Fairytale",
+    icon = "📜",
+    stylePromptPrefix = "Classic antique golden age storybook illustration, Arthur Rackham and Beatrix Potter style, warm sepia ink and tempera, ornate fairytale aesthetic",
+    description = "Golden age antique fairytale book illustration"
+  ),
+  COSMIC_GLOW(
+    label = "Cosmic & Sci-Fi",
+    icon = "🌌",
+    stylePromptPrefix = "Atmospheric cosmic sci-fi concept art, glowing neon bioluminescence, starry nebula skies, iridescent futuristic lighting, digital matte painting",
+    description = "Bioluminescent starlight and cosmic vistas"
+  ),
+  OIL_PAINTING(
+    label = "Oil Painting",
+    icon = "🖌️",
+    stylePromptPrefix = "Rich textured oil painting on canvas, expressive impasto brushstrokes, dramatic chiaroscuro lighting, classical masterpiece style",
+    description = "Expressive impasto brushstrokes and canvas texture"
+  ),
+  ANIME_FANTASY(
+    label = "Anime Fantasy",
+    icon = "🌸",
+    stylePromptPrefix = "Studio Ghibli inspired anime fantasy background art, painted lush scenery, gentle sunlight beams, painterly aesthetic, high aesthetic quality",
+    description = "Studio Ghibli inspired painted anime scenery"
+  )
+}
+
 enum class StoryGenre(val label: String, val icon: String, val colorHex: Long) {
   FANTASY("Fantasy & Magic", "✨", 0xFF6750A4),
   SCIFI("Sci-Fi & Cosmic", "🚀", 0xFF0288D1),

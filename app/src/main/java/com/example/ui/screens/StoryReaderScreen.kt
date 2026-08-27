@@ -661,32 +661,132 @@ fun StoryReaderScreen(
               )
             }
 
-            // Image generating badge
-            if (uiState.isGeneratingImage) {
-              Surface(
-                shape = CircleShape,
-                color = Color(0xCC000000),
-                modifier = Modifier
-                  .align(Alignment.TopEnd)
-                  .padding(14.dp)
+            // Customize Artwork Button on top-right of image card
+            Surface(
+              shape = RoundedCornerShape(12.dp),
+              color = Color(0xDD1C1B1F),
+              border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x44FFFFFF)),
+              modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { viewModel.openCustomizeImageDialog(currentChapterIndex) }
+                .testTag("customize_chapter_image_card_button")
+            ) {
+              Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
               ) {
-                Row(
-                  verticalAlignment = Alignment.CenterVertically,
-                  modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
+                if (uiState.isGeneratingImage || uiState.isCustomImageGenerating) {
                   CircularProgressIndicator(
                     color = Color.White,
                     strokeWidth = 2.dp,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(12.dp)
                   )
                   Spacer(modifier = Modifier.width(6.dp))
                   Text(
                     text = "Painting...",
                     color = Color.White,
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Bold
+                  )
+                } else {
+                  Icon(
+                    imageVector = Icons.Default.Palette,
+                    contentDescription = null,
+                    tint = Color(0xFFD0BCFF),
+                    modifier = Modifier.size(14.dp)
+                  )
+                  Spacer(modifier = Modifier.width(6.dp))
+                  Text(
+                    text = "Customize Art",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
                   )
                 }
+              }
+            }
+          }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Customize Chapter Artwork Action Bar
+        Surface(
+          shape = RoundedCornerShape(16.dp),
+          color = Color(theme.cardColor),
+          border = androidx.compose.foundation.BorderStroke(1.dp, Color(theme.dividerColor)),
+          modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { viewModel.openCustomizeImageDialog(currentChapterIndex) }
+            .testTag("customize_chapter_image_banner")
+        ) {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              modifier = Modifier.weight(1f)
+            ) {
+              Surface(
+                shape = CircleShape,
+                color = Color(theme.accentColor).copy(alpha = 0.15f),
+                modifier = Modifier.size(34.dp)
+              ) {
+                Box(contentAlignment = Alignment.Center) {
+                  Icon(
+                    imageVector = Icons.Default.Palette,
+                    contentDescription = null,
+                    tint = Color(theme.accentColor),
+                    modifier = Modifier.size(18.dp)
+                  )
+                }
+              }
+              Spacer(modifier = Modifier.width(10.dp))
+              Column {
+                Text(
+                  text = "Customize Chapter ${currentChapterIndex + 1} Artwork",
+                  style = MaterialTheme.typography.labelLarge,
+                  fontWeight = FontWeight.Bold,
+                  color = Color(theme.textColor)
+                )
+                Text(
+                  text = "Custom prompt, art style presets, or AI story auto-prompt",
+                  style = MaterialTheme.typography.bodySmall,
+                  fontSize = 11.sp,
+                  color = Color(theme.subtitleColor)
+                )
+              }
+            }
+
+            Surface(
+              shape = RoundedCornerShape(10.dp),
+              color = Color(theme.accentColor),
+              modifier = Modifier.clip(RoundedCornerShape(10.dp))
+            ) {
+              Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                Icon(
+                  imageVector = Icons.Default.AutoAwesome,
+                  contentDescription = null,
+                  tint = if (isDarkTheme) Color.Black else Color.White,
+                  modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                  text = "Edit Art",
+                  fontSize = 11.sp,
+                  fontWeight = FontWeight.Bold,
+                  color = if (isDarkTheme) Color.Black else Color.White
+                )
               }
             }
           }
@@ -1421,6 +1521,14 @@ fun StoryReaderScreen(
   if (uiState.isCharacterGalleryVisible) {
     CharacterGallerySheet(
       viewModel = viewModel
+    )
+  }
+
+  // Customize Chapter Artwork Dialog
+  if (uiState.showCustomizeImageDialog) {
+    CustomizeChapterImageDialog(
+      viewModel = viewModel,
+      onDismiss = { viewModel.closeCustomizeImageDialog() }
     )
   }
 }

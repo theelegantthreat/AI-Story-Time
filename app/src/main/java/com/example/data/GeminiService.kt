@@ -194,9 +194,75 @@ class GeminiService {
     }
   }
 
+  suspend fun extractImagePromptFromStory(
+    storyTitle: String,
+    chapterTitle: String,
+    chapterContent: String,
+    stylePreset: ImageStylePreset = ImageStylePreset.PENCIL_SKETCH,
+    modelName: String = "gemini-3.5-flash"
+  ): String = withContext(Dispatchers.IO) {
+    val apiKey = getApiKey()
+    if (!isApiKeyConfigured) {
+      return@withContext "Key scene from $chapterTitle in $storyTitle with detailed characters and atmospheric setting"
+    }
+
+    try {
+      val promptReq = """
+        You are an expert storybook art director and visual concept artist.
+        Analyze this story chapter and write a concise, vivid image prompt (1-3 sentences) focusing on the single most dramatic, memorable visual scene in this chapter.
+        Describe the characters, their action, facial expressions, background environment, and mood.
+        Do NOT write preface or conversational text. Output ONLY the descriptive visual prompt.
+
+        Story: $storyTitle
+        Chapter: $chapterTitle
+        Story Text:
+        ${chapterContent.take(1500)}
+      """.trimIndent()
+
+      val payload = JSONObject().apply {
+        put("contents", JSONArray().put(
+          JSONObject().apply {
+            put("role", "user")
+            put("parts", JSONArray().put(JSONObject().put("text", promptReq)))
+          }
+        ))
+        put("generationConfig", JSONObject().apply {
+          put("temperature", 0.7)
+          put("maxOutputTokens", 250)
+        })
+      }
+
+      val actualModel = if (modelName.contains("gemini-3")) modelName else "gemini-3.5-flash"
+      val url = "https://generativelanguage.googleapis.com/v1beta/models/$actualModel:generateContent?key=$apiKey"
+      val request = Request.Builder()
+        .url(url)
+        .post(payload.toString().toRequestBody("application/json".toMediaType()))
+        .build()
+
+      val response = client.newCall(request).execute()
+      val responseBody = response.body?.string() ?: ""
+      if (response.isSuccessful) {
+        val json = JSONObject(responseBody)
+        val candidates = json.optJSONArray("candidates")
+        if (candidates != null && candidates.length() > 0) {
+          val parts = candidates.getJSONObject(0).optJSONObject("content")?.optJSONArray("parts")
+          val text = parts?.getJSONObject(0)?.optString("text")?.trim()
+          if (!text.isNullOrBlank()) {
+            return@withContext text.removePrefix("\"").removeSuffix("\"").trim()
+          }
+        }
+      }
+    } catch (e: Exception) {
+      Log.e("GeminiService", "Failed to extract image prompt from story", e)
+    }
+
+    return@withContext "A captivating moment from $chapterTitle: $storyTitle with magical atmosphere and rich storytelling details"
+  }
+
   suspend fun generateStoryImage(
     imagePrompt: String,
-    imageSize: ImageSize
+    imageSize: ImageSize,
+    stylePreset: ImageStylePreset = ImageStylePreset.PENCIL_SKETCH
   ): ImageGenerationResult = withContext(Dispatchers.IO) {
     val apiKey = getApiKey()
     if (!isApiKeyConfigured) {
@@ -204,8 +270,8 @@ class GeminiService {
     }
 
     try {
-      // Artistic pencil drawing style for story illustration
-      val promptWithStyle = "Artistic hand-drawn vintage pencil drawing, detailed graphite pencil sketch, delicate shading, cross-hatching, fine line art storybook illustration, textured paper background: $imagePrompt"
+      // Apply the selected style preset prefix for consistent artistic quality
+      val promptWithStyle = "${stylePreset.stylePromptPrefix}: $imagePrompt"
       
       // Try gemini-3-pro-image-preview / Imagen endpoint
       val payload = JSONObject().apply {

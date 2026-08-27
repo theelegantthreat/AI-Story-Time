@@ -78,5 +78,18 @@ class ExampleUnitTest {
     assertEquals("🔧", parsed[0].emoji)
     assertEquals(1, parsed[0].firstAppearedChapter)
   }
+
+  @Test
+  fun testImageStylePresets() {
+    val presets = com.example.data.ImageStylePreset.values()
+    assertTrue(presets.isNotEmpty())
+    val pencil = com.example.data.ImageStylePreset.PENCIL_SKETCH
+    assertEquals("Pencil Sketch", pencil.label)
+    assertTrue(pencil.stylePromptPrefix.contains("pencil", ignoreCase = true))
+
+    val watercolor = com.example.data.ImageStylePreset.WATERCOLOR
+    assertEquals("Watercolor", watercolor.label)
+    assertTrue(watercolor.stylePromptPrefix.contains("watercolor", ignoreCase = true))
+  }
 }
 
