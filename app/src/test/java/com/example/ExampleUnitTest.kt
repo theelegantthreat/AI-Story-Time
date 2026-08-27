@@ -13,7 +13,12 @@ import com.example.data.StoryRepository
 import com.example.data.VoiceProfile
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class ExampleUnitTest {
   @Test
   fun addition_isCorrect() {
@@ -29,11 +34,13 @@ class ExampleUnitTest {
       prompt = "A young brave warrior encounters a friendly frost dragon in ancient caverns.",
       genre = StoryGenre.FANTASY,
       length = StoryLength.MEDIUM,
-      imageSize = ImageSize.SQUARE,
-      voiceProfile = VoiceProfile.ZEPHYR,
+      imageSize = ImageSize.SIZE_1K,
+      voiceProfile = VoiceProfile.DEFAULT,
       chapters = listOf(
         Chapter(
-          chapterNumber = 1,
+          id = "ch-1",
+          storyId = "test-1",
+          chapterIndex = 1,
           title = "Frozen Echoes",
           content = "Eldrin the brave warrior walked into the shimmering cavern where Frostfang the gentle ancient dragon slept."
         )

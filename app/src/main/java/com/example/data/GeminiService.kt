@@ -65,7 +65,7 @@ class GeminiService {
           "storyTitle": "Catchy and poetic overall story title",
           "chapterTitle": "Chapter $chapterNum: Title for this chapter",
           "storyText": "The actual full story content written with sensory details, dialogue, and emotion. Approximately ${length.approximateWords} words.",
-          "imagePrompt": "A highly detailed, vibrant artistic prompt describing the key visual scene of this chapter for an image generator. Mention lighting, colors, art style (e.g. whimsical digital storybook art), and character actions.",
+          "imagePrompt": "A highly detailed pencil drawing prompt describing the key visual scene of this chapter. Specify fine hand-drawn graphite pencil sketch, delicate shading, cross-hatching, storybook pencil drawing art style on textured paper.",
           "continuationOptions": [
             {"branchTitle": "Option 1 short title", "teaser": "A 1-sentence teaser of what could happen next if the reader chooses this."},
             {"branchTitle": "Option 2 short title", "teaser": "A 1-sentence teaser of what could happen next if the reader chooses this."},
@@ -204,8 +204,8 @@ class GeminiService {
     }
 
     try {
-      // Model requirement: gemini-3-pro-image-preview
-      val promptWithStyle = "Children's storybook vibrant illustration, Disney/Pixar magical concept art style, rich cinematic lighting, 8k resolution, crisp details: $imagePrompt"
+      // Artistic pencil drawing style for story illustration
+      val promptWithStyle = "Artistic hand-drawn vintage pencil drawing, detailed graphite pencil sketch, delicate shading, cross-hatching, fine line art storybook illustration, textured paper background: $imagePrompt"
       
       // Try gemini-3-pro-image-preview / Imagen endpoint
       val payload = JSONObject().apply {
@@ -428,7 +428,7 @@ class GeminiService {
       storyTitle = sampleTitle,
       chapterTitle = chapterTitle,
       storyText = storyText,
-      imagePrompt = "A magical glowing forest made of crystal glass trees, emerald foliage, sparkling starlight, cute animal explorer with a tiny shoulder pocket dragon, fantasy storybook art style, highly detailed 3D Pixar render",
+      imagePrompt = "Hand-drawn vintage pencil sketch of an enchanted crystal forest with glowing trees, delicate graphite shading, storybook pencil drawing on parchment paper",
       continuationOptions = listOf(
         ContinuationOption("Touch the celestial sphere", "Unlock ancient memories stored within the glowing orb."),
         ContinuationOption("Investigate the music box sound", "Follow the melody deeper into the hollow ancient oak tree."),
@@ -522,7 +522,7 @@ class GeminiService {
     }
   }
 
-  private fun parseCharactersJson(rawJson: String): List<StoryCharacter> {
+  internal fun parseCharactersJson(rawJson: String): List<StoryCharacter> {
     return try {
       val trimmed = rawJson.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
       val jsonArray = JSONArray(trimmed)

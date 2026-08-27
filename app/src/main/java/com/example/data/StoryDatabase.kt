@@ -65,7 +65,7 @@ abstract class StoryDatabase : RoomDatabase() {
           StoryDatabase::class.java,
           "ai_story_time.db"
         )
-          .fallbackToDestructiveMigration()
+          .fallbackToDestructiveMigration(dropAllTables = true)
           .build()
         INSTANCE = instance
         instance

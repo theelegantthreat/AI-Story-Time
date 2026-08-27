@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Pause
@@ -70,6 +71,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -98,6 +100,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -105,6 +108,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.Chapter
 import com.example.data.ReadingFontOption
 import com.example.data.ReadingTheme
@@ -143,6 +147,23 @@ fun StoryReaderScreen(
   }
 
   val context = LocalContext.current
+  val scrollState = rememberScrollState()
+
+  // Track user reading progress across scrollable content
+  val readingProgress by remember {
+    derivedStateOf {
+      if (scrollState.maxValue > 0) {
+        (scrollState.value.toFloat() / scrollState.maxValue.toFloat()).coerceIn(0f, 1f)
+      } else {
+        0f
+      }
+    }
+  }
+  val animatedReadingProgress by animateFloatAsState(
+    targetValue = readingProgress,
+    animationSpec = tween(durationMillis = 120),
+    label = "reading_progress_anim"
+  )
 
   Scaffold(
     topBar = {
@@ -309,6 +330,62 @@ fun StoryReaderScreen(
         .fillMaxSize()
         .padding(paddingValues)
     ) {
+      // Visual Reading Progress Bar at the top of the Story Screen
+      Surface(
+        color = Color(theme.cardColor),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, Color(theme.dividerColor)),
+        shadowElevation = 2.dp,
+        modifier = Modifier
+          .fillMaxWidth()
+          .testTag("reading_progress_header_card")
+      ) {
+        Column(
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+        ) {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Icon(
+                imageVector = Icons.Default.MenuBook,
+                contentDescription = null,
+                tint = Color(theme.accentColor),
+                modifier = Modifier.size(14.dp)
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(
+                text = if (story.chapters.size > 1) "Chapter ${currentChapterIndex + 1} of ${story.chapters.size}" else "Story Progress",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(theme.textColor)
+              )
+            }
+            Text(
+              text = "${(animatedReadingProgress * 100).toInt()}% read",
+              fontSize = 11.sp,
+              fontWeight = FontWeight.Bold,
+              color = Color(theme.accentColor),
+              modifier = Modifier.testTag("reading_progress_percent_text")
+            )
+          }
+          Spacer(modifier = Modifier.height(4.dp))
+          LinearProgressIndicator(
+            progress = { animatedReadingProgress },
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(5.dp)
+              .clip(RoundedCornerShape(3.dp))
+              .testTag("visual_reading_progress_bar"),
+            color = Color(theme.accentColor),
+            trackColor = Color(theme.dividerColor).copy(alpha = if (isDarkTheme) 0.35f else 0.25f)
+          )
+        }
+      }
+
       // Expandable Appearance Quick Panel
       AnimatedVisibility(
         visible = showAppearancePanel,
@@ -470,7 +547,7 @@ fun StoryReaderScreen(
       Column(
         modifier = Modifier
           .weight(1f)
-          .verticalScroll(rememberScrollState())
+          .verticalScroll(scrollState)
           .padding(horizontal = 16.dp, vertical = 8.dp)
       ) {
         // Chapter Switcher Tabs (if more than 1 chapter)
@@ -1351,21 +1428,51 @@ fun StoryReaderScreen(
 @Composable
 private fun FallbackArtworkBanner(title: String?) {
   Box(
-    modifier = Modifier
-      .fillMaxSize()
-      .background(
-        Brush.linearGradient(
-          colors = listOf(Color(0xFF6750A4), Color(0xFFD0BCFF), Color(0xFFEADDFF))
-        )
-      ),
+    modifier = Modifier.fillMaxSize(),
     contentAlignment = Alignment.Center
   ) {
-    Icon(
-      imageVector = Icons.Default.AutoStories,
-      contentDescription = null,
-      tint = Color.White.copy(alpha = 0.9f),
-      modifier = Modifier.size(64.dp)
+    Image(
+      painter = painterResource(id = R.drawable.img_pencil_story_art),
+      contentDescription = "Pencil drawing illustration for story: ${title ?: "Story"}",
+      contentScale = ContentScale.Crop,
+      modifier = Modifier.fillMaxSize()
     )
+
+    // Subtle dark vignette gradient overlay
+    Box(
+      modifier = Modifier
+        .fillMaxSize()
+        .background(
+          Brush.verticalGradient(
+            colors = listOf(Color.Transparent, Color(0x77000000)),
+            startY = 80f
+          )
+        )
+    )
+
+    // Pencil Sketch Artistic Tag at the Top Left
+    Surface(
+      shape = RoundedCornerShape(10.dp),
+      color = Color(0xDD1C1B1F),
+      modifier = Modifier
+        .align(Alignment.TopStart)
+        .padding(12.dp)
+        .testTag("pencil_sketch_artwork_badge")
+    ) {
+      Row(
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Text(text = "✏️", fontSize = 11.sp)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+          text = "Pencil Sketch Illustration",
+          fontSize = 10.sp,
+          fontWeight = FontWeight.Bold,
+          color = Color(0xFFF3EDF7)
+        )
+      }
+    }
   }
 }
 
